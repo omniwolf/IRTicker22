@@ -18,8 +18,10 @@ namespace IRTicker2 {
 
         OrderBook bidOBobj;
         OrderBook offerOBobj;
-        decimal bestBid = 0;
-        decimal bestOffer = 0;
+        bool snapShotLoaded = false;
+        ConcurrentDictionary<int, socketOBObj> orderBuffer;
+        int nonce;
+        WebSocket IRWS;
 
         public Form1() {
             InitializeComponent();
@@ -28,11 +30,13 @@ namespace IRTicker2 {
 
         private void Connect() {
 
-            bidOBobj = new OrderBook();
-            bidOBobj.side = "Bid";
-            offerOBobj = new OrderBook();
-            offerOBobj.side = "Offer";
-            var IRWS = new WebSocket("wss://websockets.independentreserve.com");
+            // initialise the vars
+            orderBuffer = new ConcurrentDictionary<int, socketOBObj>();
+            bidOBobj = new OrderBook("Bid");
+            offerOBobj = new OrderBook("Offer");
+            IRWS = new WebSocket("wss://websockets.independentreserve.com");
+            nonce = -1;
+            snapShotLoaded = false;
 
             IRWS.OnMessage += (sender, e) => {
                 //Debug.Print("got a message: " + e.Data.ToString());
@@ -69,38 +73,96 @@ namespace IRTicker2 {
             else {
                 socketOBObj OBevent = JsonConvert.DeserializeObject<socketOBObj>(msg);
                 //Debug.Print("Event: " + OBevent.Event);
-                OrderBook OBobj;
-                if (OBevent.Data.OrderType == "LimitBid") OBobj = bidOBobj;
-                else if (OBevent.Data.OrderType == "LimitOffer") OBobj = offerOBobj;
-                else {
-                    Debug.Print(DateTime.Now + " - Ordertype not limitbid/offer, it was: " + OBevent.Data.OrderType);
+
+                if (!validateNonce(OBevent)) {
                     return;
                 }
-                
-                switch (OBevent.Event) {
-                    case "NewOrder":
-                        OBobj.addEvent(OBevent.Data);
-                        break;
 
-                    case "OrderChanged":
-                        OBobj.changeEvent(OBevent.Data);
-                        break;
-
-                    case "OrderCanceled":
-                        OBobj.removeEvent(OBevent.Data);
-                        break;
+                // so if we haven't grabbed the snapshot yet, we just build a buffer to replay over it once we have
+                if (!snapShotLoaded) {
+                    orderBuffer[OBevent.Nonce] =  OBevent;
+                    Debug.Print("Buffering a " + OBevent.Event + " event, total: " + orderBuffer.Count);
+                    return;
                 }
 
+                ApplyEventToOB(OBevent, true);
+
+                // if the orderBuffer dict has anything in it, then it means we have buffered an out of order event due to a 
+                // non -contiguous nonce.  Let's try see if the next nonce is in the buffer and apply in order.
+                if (orderBuffer.Count > 0) TryRecoverFromNonce();  
+            }
+        }
+
+        private void TryRecoverFromNonce() {
+
+            // If our buffer contains the next nonce, then we apply it to the OB, and delete that buffer entry
+            // If the buffer doesn't, we just exit this method and check the next nonce when the next event comes in.
+            // if the buffer grows bigger than 4 elements (see validateNonce(...) method), we bail and start fresh.
+            while (orderBuffer.ContainsKey(nonce + 1)) {
+                ApplyEventToOB(orderBuffer[nonce + 1], true);
+                orderBuffer.TryRemove(nonce + 1, out socketOBObj ignore);
+                nonce += 1;
+            }
+        }
+
+        private bool validateNonce(socketOBObj OBevent) {
+
+            if (nonce == -1) {  // first event
+                nonce = OBevent.Nonce;
+                return true;
+            }
+
+            if (OBevent.Nonce == nonce + 1) {  // nonce looks good
+                nonce += 1;
+                return true;
+            }
+
+            Debug.Print("NONCE out of order, we have " + orderBuffer.Count + " order(s) buffered");
+
+            if (orderBuffer.Count < 10) {  // if we haven't caught up by 4 bad nonces, we're not catching up.
+                orderBuffer.TryAdd(OBevent.Nonce, OBevent);
+            }
+            else {
+                Debug.Print("Too many out of order Nonces, let's reset");
+                IRWS.Close();
+                Connect();
+            }
+            return false;
+        }
+
+        private void ApplyEventToOB(socketOBObj OBevent, bool draw) {
+            OrderBook OBobj;
+            if (OBevent.Data.OrderType == "LimitBid") OBobj = bidOBobj;
+            else if (OBevent.Data.OrderType == "LimitOffer") OBobj = offerOBobj;
+            else {
+                Debug.Print(DateTime.Now + " - Ordertype not limitbid/offer, it was: " + OBevent.Data.OrderType);
+                return;
+            }
+
+            switch (OBevent.Event) {
+                case "NewOrder":
+                    OBobj.addEvent(OBevent.Data);
+                    break;
+
+                case "OrderChanged":
+                    OBobj.changeEvent(OBevent.Data);
+                    break;
+
+                case "OrderCanceled":
+                    OBobj.removeEvent(OBevent.Data);
+                    break;
+            }
+
+            if (draw) {
                 // draw it?
                 printOB(OBobj, OBevent.Data.OrderType);
-
-                //spread_dyn_label.Text = (bestOffer - bestBid).ToString();
-                spread_dyn_label.Invoke((MethodInvoker)(() => spread_dyn_label.Text = (bestOffer - bestBid).ToString()));
             }
         }
 
         private bool printOB(OrderBook OBobj, string side) {
             IOrderedEnumerable<KeyValuePair<decimal, ConcurrentDictionary<string, socketOBObjData>>> orderedInput;
+            decimal bestBid = 0;
+            decimal bestOffer = 0;
 
             if (side == "LimitBid") {
                 orderedInput = OBobj.priceDict.OrderByDescending(key => key.Key);
@@ -115,6 +177,10 @@ namespace IRTicker2 {
                 //best_offer_dyn_label.Text = bestOffer.ToString();
                 best_offer_dyn_label.Invoke((MethodInvoker)(() => best_offer_dyn_label.Text = bestOffer.ToString()));
             }
+
+            //spread_dyn_label.Text = (bestOffer - bestBid).ToString();
+            spread_dyn_label.Invoke((MethodInvoker)(() => spread_dyn_label.Text = (bestOffer - bestBid).ToString()));
+
             return true;
         }
 
@@ -154,6 +220,25 @@ namespace IRTicker2 {
             else {
                 Debug.Print(DateTime.Now + " - BIG PRoblems, the snapshot for offers was empty");
             }
+
+
+            if (orderBuffer.Count > 0) {
+                nonce = orderBuffer.Keys.Min() - 1;  // set the nonce to the value before the first nonce value in our buffer
+
+                while (orderBuffer.ContainsKey(nonce + 1)) {
+                    nonce += 1;
+                    ApplyEventToOB(orderBuffer[nonce], false);
+                    orderBuffer.TryRemove(nonce, out socketOBObj ignore);
+                }
+
+                if (orderBuffer.Count > 0) {  // this means we have out of order nonces in the buffer.  bad news; we can't recover from this.
+                    Debug.Print("Trying to replay initial buffer over the OB and there is missing nonces.  reseting.");
+                    IRWS.Close();
+                    Connect();
+                    return;
+                }
+            }
+            snapShotLoaded = true;
         }
 
 

@@ -51,7 +51,7 @@
             // best_offer_stat_label
             // 
             this.best_offer_stat_label.AutoSize = true;
-            this.best_offer_stat_label.Location = new System.Drawing.Point(37, 162);
+            this.best_offer_stat_label.Location = new System.Drawing.Point(230, 87);
             this.best_offer_stat_label.Name = "best_offer_stat_label";
             this.best_offer_stat_label.Size = new System.Drawing.Size(55, 13);
             this.best_offer_stat_label.TabIndex = 2;
@@ -60,7 +60,7 @@
             // best_bid_stat_label
             // 
             this.best_bid_stat_label.AutoSize = true;
-            this.best_bid_stat_label.Location = new System.Drawing.Point(37, 119);
+            this.best_bid_stat_label.Location = new System.Drawing.Point(97, 87);
             this.best_bid_stat_label.Name = "best_bid_stat_label";
             this.best_bid_stat_label.Size = new System.Drawing.Size(48, 13);
             this.best_bid_stat_label.TabIndex = 3;
@@ -78,7 +78,7 @@
             // best_offer_dyn_label
             // 
             this.best_offer_dyn_label.AutoSize = true;
-            this.best_offer_dyn_label.Location = new System.Drawing.Point(117, 162);
+            this.best_offer_dyn_label.Location = new System.Drawing.Point(247, 119);
             this.best_offer_dyn_label.Name = "best_offer_dyn_label";
             this.best_offer_dyn_label.Size = new System.Drawing.Size(13, 13);
             this.best_offer_dyn_label.TabIndex = 5;

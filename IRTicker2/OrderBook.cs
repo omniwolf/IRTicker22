@@ -8,9 +8,13 @@ using System.Diagnostics;
 
 namespace IRTicker2 {
     class OrderBook {
-        public string side = "";
+        private string side = "";
         public ConcurrentDictionary<decimal, ConcurrentDictionary<string, Form1.socketOBObjData>> priceDict = new ConcurrentDictionary<decimal, ConcurrentDictionary<string, Form1.socketOBObjData>>();
         private ConcurrentDictionary<string, decimal> guidDict = new ConcurrentDictionary<string, decimal>();
+
+        public OrderBook(string _side) {
+            side = _side;
+        }
 
         public bool addEvent(Form1.socketOBObjData eventObj) {
 
