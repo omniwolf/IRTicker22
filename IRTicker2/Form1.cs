@@ -22,6 +22,8 @@ namespace IRTicker2 {
         ConcurrentDictionary<int, socketOBObj> orderBuffer;
         int nonce;
         WebSocket IRWS;
+        private decimal bestBid = 0;
+        private decimal bestOffer = 0;
 
         public Form1() {
             InitializeComponent();
@@ -155,16 +157,14 @@ namespace IRTicker2 {
 
             if (draw) {
                 // draw it?
-                printOB(OBobj, OBevent.Data.OrderType);
+                printOB(OBobj);
             }
         }
 
-        private bool printOB(OrderBook OBobj, string side) {
+        private bool printOB(OrderBook OBobj) {
             IOrderedEnumerable<KeyValuePair<decimal, ConcurrentDictionary<string, socketOBObjData>>> orderedInput;
-            decimal bestBid = 0;
-            decimal bestOffer = 0;
 
-            if (side == "LimitBid") {
+            if (OBobj.side == "Bid") {
                 orderedInput = OBobj.priceDict.OrderByDescending(key => key.Key);
                 bestBid = orderedInput.FirstOrDefault().Key;
 
