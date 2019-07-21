@@ -18,7 +18,7 @@ namespace IRTicker2 {
 
         OrderBook bidOBobj;
         OrderBook offerOBobj;
-        bool snapShotLoaded = false;
+        private bool snapShotLoaded = false;
         ConcurrentDictionary<int, socketOBObj> orderBuffer;
         int nonce;
         WebSocket IRWS;
@@ -97,13 +97,16 @@ namespace IRTicker2 {
 
         private void TryRecoverFromNonce() {
 
+            Debug.Print(" -- Trying to recover from out of order nonce.  Need to find nonce " + (nonce + 1));
+
             // If our buffer contains the next nonce, then we apply it to the OB, and delete that buffer entry
             // If the buffer doesn't, we just exit this method and check the next nonce when the next event comes in.
             // if the buffer grows bigger than 4 elements (see validateNonce(...) method), we bail and start fresh.
             while (orderBuffer.ContainsKey(nonce + 1)) {
-                ApplyEventToOB(orderBuffer[nonce + 1], true);
-                orderBuffer.TryRemove(nonce + 1, out socketOBObj ignore);
                 nonce += 1;
+                Debug.Print(" -- found it!  applying to OB...");
+                ApplyEventToOB(orderBuffer[nonce], true);
+                orderBuffer.TryRemove(nonce, out socketOBObj ignore);
             }
         }
 
@@ -119,7 +122,7 @@ namespace IRTicker2 {
                 return true;
             }
 
-            Debug.Print("NONCE out of order, we have " + orderBuffer.Count + " order(s) buffered");
+            Debug.Print("NONCE out of order, we have " + orderBuffer.Count + " order(s) buffered.  Received " + OBevent.Nonce + ", expected " + (nonce + 1));
 
             if (orderBuffer.Count < 10) {  // if we haven't caught up by 4 bad nonces, we're not catching up.
                 orderBuffer.TryAdd(OBevent.Nonce, OBevent);
@@ -224,6 +227,7 @@ namespace IRTicker2 {
 
             if (orderBuffer.Count > 0) {
                 nonce = orderBuffer.Keys.Min() - 1;  // set the nonce to the value before the first nonce value in our buffer
+                Debug.Print("Start-up buffer has " + orderBuffer.Count + " order(s), will replay them now starting at nonce " + (nonce + 1));
 
                 while (orderBuffer.ContainsKey(nonce + 1)) {
                     nonce += 1;
