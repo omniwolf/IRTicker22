@@ -181,8 +181,11 @@ namespace IRTicker2 {
                 best_offer_dyn_label.Invoke((MethodInvoker)(() => best_offer_dyn_label.Text = bestOffer.ToString()));
             }
 
+            decimal spread = bestOffer - bestBid;
+
             //spread_dyn_label.Text = (bestOffer - bestBid).ToString();
-            spread_dyn_label.Invoke((MethodInvoker)(() => spread_dyn_label.Text = (bestOffer - bestBid).ToString()));
+            spread_dyn_label.Invoke((MethodInvoker)(() => spread_dyn_label.Text = spread.ToString()));
+            if (spread < 0) Debug.Print(DateTime.Now + " - spread " + spread);
 
             return true;
         }
