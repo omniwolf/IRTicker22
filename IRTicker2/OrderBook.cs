@@ -9,6 +9,7 @@ using System.Diagnostics;
 namespace IRTicker2 {
     class OrderBook {
         public string side = "";
+        public bool changed = false;
         public ConcurrentDictionary<decimal, ConcurrentDictionary<string, Form1.socketOBObjData>> priceDict = new ConcurrentDictionary<decimal, ConcurrentDictionary<string, Form1.socketOBObjData>>();
         private ConcurrentDictionary<string, decimal> guidDict = new ConcurrentDictionary<string, decimal>();
 

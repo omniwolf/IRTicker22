@@ -12,6 +12,7 @@ using System.Diagnostics;
 using Newtonsoft.Json;
 using System.Net;
 using System.Collections.Concurrent;
+using System.Threading;
 
 namespace IRTicker2 {
     public partial class Form1 : Form {
@@ -24,6 +25,8 @@ namespace IRTicker2 {
         WebSocket IRWS;
         private decimal bestBid = 0;
         private decimal bestOffer = 0;
+        private int badNonceCount = 0;
+        private int sleepFreq = 100;
 
         public Form1() {
             InitializeComponent();
@@ -39,6 +42,8 @@ namespace IRTicker2 {
             IRWS = new WebSocket("wss://websockets.independentreserve.com");
             nonce = -1;
             snapShotLoaded = false;
+            badNonceCount = 0;
+            if (!UITimer.IsBusy) UITimer.RunWorkerAsync();
 
             IRWS.OnMessage += (sender, e) => {
                 //Debug.Print("got a message: " + e.Data.ToString());
@@ -87,26 +92,38 @@ namespace IRTicker2 {
                     return;
                 }
 
-                ApplyEventToOB(OBevent, true);
+                if (!UITimer.IsBusy) UITimer.RunWorkerAsync();
+
+                //ApplyEventToOB(OBevent, true);
 
                 // if the orderBuffer dict has anything in it, then it means we have buffered an out of order event due to a 
                 // non -contiguous nonce.  Let's try see if the next nonce is in the buffer and apply in order.
-                if (orderBuffer.Count > 0) TryRecoverFromNonce();  
+                //if (orderBuffer.Count > 0) TryRecoverFromNonce();  
             }
         }
 
         private void TryRecoverFromNonce() {
 
-            Debug.Print(" -- Trying to recover from out of order nonce.  Need to find nonce " + (nonce + 1));
+            Debug.Print(" -- Applying " + orderBuffer.Count + " orders from the buffer...");
 
             // If our buffer contains the next nonce, then we apply it to the OB, and delete that buffer entry
             // If the buffer doesn't, we just exit this method and check the next nonce when the next event comes in.
             // if the buffer grows bigger than 4 elements (see validateNonce(...) method), we bail and start fresh.
             while (orderBuffer.ContainsKey(nonce + 1)) {
                 nonce += 1;
-                Debug.Print(" -- found it!  applying to OB...");
-                ApplyEventToOB(orderBuffer[nonce], true);
+                //Debug.Print(" -- found it!  applying to OB...");
+                ApplyEventToOB(orderBuffer[nonce], false);
                 orderBuffer.TryRemove(nonce, out socketOBObj ignore);
+            }
+
+            if (orderBuffer.Count != 0) {
+                Debug.Print(DateTime.Now + " - we have a missing nonce, " + orderBuffer.Count + " orders in the buffer");
+                if (orderBuffer.Count > 10) {
+                    Debug.Print("Too many out of order Nonces, let's reset");
+                    IRWS.Close();
+                    UITimer.CancelAsync();
+                    Connect();
+                }
             }
         }
 
@@ -116,20 +133,23 @@ namespace IRTicker2 {
                 nonce = OBevent.Nonce;
                 return true;
             }
-
+            orderBuffer.TryAdd(OBevent.Nonce, OBevent);
+            return true;
             if (OBevent.Nonce == nonce + 1) {  // nonce looks good
-                nonce += 1;
+                //nonce += 1;
                 return true;
             }
 
             Debug.Print("NONCE out of order, we have " + orderBuffer.Count + " order(s) buffered.  Received " + OBevent.Nonce + ", expected " + (nonce + 1));
 
-            if (orderBuffer.Count < 10) {  // if we haven't caught up by 4 bad nonces, we're not catching up.
-                orderBuffer.TryAdd(OBevent.Nonce, OBevent);
+            if (badNonceCount < 10) {  // if we haven't caught up by 4 bad nonces, we're not catching up.
+                badNonceCount++;
+                return false;
             }
             else {
                 Debug.Print("Too many out of order Nonces, let's reset");
                 IRWS.Close();
+                UITimer.CancelAsync();
                 Connect();
             }
             return false;
@@ -143,6 +163,8 @@ namespace IRTicker2 {
                 Debug.Print(DateTime.Now + " - Ordertype not limitbid/offer, it was: " + OBevent.Data.OrderType);
                 return;
             }
+
+            OBobj.changed = true;
 
             switch (OBevent.Event) {
                 case "NewOrder":
@@ -180,6 +202,7 @@ namespace IRTicker2 {
                 //best_offer_dyn_label.Text = bestOffer.ToString();
                 best_offer_dyn_label.Invoke((MethodInvoker)(() => best_offer_dyn_label.Text = bestOffer.ToString()));
             }
+            OBobj.changed = false;
 
             decimal spread = bestOffer - bestBid;
 
@@ -241,6 +264,7 @@ namespace IRTicker2 {
                 if (orderBuffer.Count > 0) {  // this means we have out of order nonces in the buffer.  bad news; we can't recover from this.
                     Debug.Print("Trying to replay initial buffer over the OB and there is missing nonces.  reseting.");
                     IRWS.Close();
+                    UITimer.CancelAsync();
                     Connect();
                     return;
                 }
@@ -276,6 +300,36 @@ namespace IRTicker2 {
             public string PrimaryCurrencyCode { get; set; }
             public string SecondaryCurrencyCode { get; set; }
             public DateTime CreatedTimestampUtc { get; set; }
+        }
+
+        private void UITimer_DoWork(object sender, DoWorkEventArgs e) {
+            while (true) {
+                if (UITimer.CancellationPending) break;
+                TryRecoverFromNonce();
+                UITimer.ReportProgress(1);
+                Thread.Sleep(sleepFreq);
+            }
+        }
+
+        private void UITimer_ProgressChanged(object sender, ProgressChangedEventArgs e) {
+            if (bidOBobj.changed) printOB(bidOBobj);
+            if (offerOBobj.changed) printOB(offerOBobj);
+        }
+
+        private void button1_Click(object sender, EventArgs e) {
+
+            if (Int32.TryParse(timerSleep.Text, out int sleepFreq1) && sleepFreq1 > 0) {
+                Debug.Print("=========================");
+                Debug.Print("Setting the timer to " + timerSleep.Text + "ms.");
+                Debug.Print("=========================");
+
+                IRWS.Close();
+                UITimer.CancelAsync();
+                sleepFreq = sleepFreq1;
+                Connect();
+            }
+
+
         }
     }
 }
