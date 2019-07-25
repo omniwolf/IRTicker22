@@ -32,6 +32,8 @@
             this.UITimer = new System.ComponentModel.BackgroundWorker();
             this.button1 = new System.Windows.Forms.Button();
             this.timerSleep = new System.Windows.Forms.MaskedTextBox();
+            this.orders_processed_stat_label = new System.Windows.Forms.Label();
+            this.orders_processed_dyn_label = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // spread_dyn_label
@@ -99,7 +101,7 @@
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(106, 248);
+            this.button1.Location = new System.Drawing.Point(53, 245);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(104, 23);
             this.button1.TabIndex = 7;
@@ -109,19 +111,39 @@
             // 
             // timerSleep
             // 
-            this.timerSleep.Location = new System.Drawing.Point(110, 203);
+            this.timerSleep.Location = new System.Drawing.Point(57, 200);
             this.timerSleep.Mask = "0000000000";
             this.timerSleep.Name = "timerSleep";
             this.timerSleep.Size = new System.Drawing.Size(100, 20);
             this.timerSleep.TabIndex = 8;
-            this.timerSleep.Text = "100";
+            this.timerSleep.Text = "500";
             this.timerSleep.ValidatingType = typeof(int);
+            // 
+            // orders_processed_stat_label
+            // 
+            this.orders_processed_stat_label.AutoSize = true;
+            this.orders_processed_stat_label.Location = new System.Drawing.Point(197, 203);
+            this.orders_processed_stat_label.Name = "orders_processed_stat_label";
+            this.orders_processed_stat_label.Size = new System.Drawing.Size(140, 13);
+            this.orders_processed_stat_label.TabIndex = 9;
+            this.orders_processed_stat_label.Text = "Orders processed this cycle:";
+            // 
+            // orders_processed_dyn_label
+            // 
+            this.orders_processed_dyn_label.AutoSize = true;
+            this.orders_processed_dyn_label.Location = new System.Drawing.Point(213, 254);
+            this.orders_processed_dyn_label.Name = "orders_processed_dyn_label";
+            this.orders_processed_dyn_label.Size = new System.Drawing.Size(13, 13);
+            this.orders_processed_dyn_label.TabIndex = 10;
+            this.orders_processed_dyn_label.Text = "0";
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(384, 361);
+            this.Controls.Add(this.orders_processed_dyn_label);
+            this.Controls.Add(this.orders_processed_stat_label);
             this.Controls.Add(this.timerSleep);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.best_offer_dyn_label);
@@ -150,6 +172,8 @@
         private System.ComponentModel.BackgroundWorker UITimer;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.MaskedTextBox timerSleep;
+        private System.Windows.Forms.Label orders_processed_stat_label;
+        private System.Windows.Forms.Label orders_processed_dyn_label;
     }
 }
 

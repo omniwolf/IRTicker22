@@ -82,7 +82,7 @@ namespace IRTicker2 {
                 //Debug.Print("Event: " + OBevent.Event);
 
                 if (!validateNonce(OBevent)) {
-                    return;
+                    resetSocket("Couldn't add order to buffer?  Nonce: " + nonce + " and order nonce: " + OBevent.Nonce);
                 }
 
                 // so if we haven't grabbed the snapshot yet, we just build a buffer to replay over it once we have
@@ -102,9 +102,17 @@ namespace IRTicker2 {
             }
         }
 
-        private void TryRecoverFromNonce() {
+        private int TryRecoverFromNonce() {
 
-            Debug.Print(" -- Applying " + orderBuffer.Count + " orders from the buffer...");
+            //Debug.Print(" -- Applying " + orderBuffer.Count + " orders from the buffer...");
+            int numOrders = orderBuffer.Count;
+
+            if (nonce == -1) {  // first event
+                if (numOrders <= 0) {
+                    return numOrders;
+                }
+                nonce = orderBuffer.Keys.Min() - 1;
+            }
 
             // If our buffer contains the next nonce, then we apply it to the OB, and delete that buffer entry
             // If the buffer doesn't, we just exit this method and check the next nonce when the next event comes in.
@@ -112,29 +120,45 @@ namespace IRTicker2 {
             while (orderBuffer.ContainsKey(nonce + 1)) {
                 nonce += 1;
                 //Debug.Print(" -- found it!  applying to OB...");
-                ApplyEventToOB(orderBuffer[nonce], false);
-                orderBuffer.TryRemove(nonce, out socketOBObj ignore);
+                if (orderBuffer.TryRemove(nonce, out socketOBObj currentEvent)) {
+                    ApplyEventToOB(currentEvent, false);
+                }
+                else {
+                    resetSocket("OrderBuffer missing an event it should have?? " + nonce);
+                    return -1;
+                }
             }
 
             if (orderBuffer.Count != 0) {
                 Debug.Print(DateTime.Now + " - we have a missing nonce, " + orderBuffer.Count + " orders in the buffer");
                 if (orderBuffer.Count > 10) {
-                    Debug.Print("Too many out of order Nonces, let's reset");
-                    IRWS.Close();
-                    UITimer.CancelAsync();
-                    Connect();
+                    resetSocket("Too many out of order Nonces, let's reset");
+                    return -1;
                 }
             }
+            return numOrders - orderBuffer.Count;
+        }
+
+        private void resetSocket(string debugMsg) {
+            Debug.Print(DateTime.Now + " - " + debugMsg);
+            IRWS.Close();
+            if (UITimer.IsBusy) UITimer.CancelAsync();
+            Connect();
         }
 
         private bool validateNonce(socketOBObj OBevent) {
 
-            if (nonce == -1) {  // first event
+            /*if (nonce == -1) {  // first event
                 nonce = OBevent.Nonce;
                 return true;
+            }*/
+            if (orderBuffer.TryAdd(OBevent.Nonce, OBevent)) {
+                return true;
             }
-            orderBuffer.TryAdd(OBevent.Nonce, OBevent);
-            return true;
+            else {
+                Debug.Print("could not add an event to the order buffer??  current nonce: " + nonce + " and event nonce: " + OBevent.Nonce);
+                return false;
+            }
             if (OBevent.Nonce == nonce + 1) {  // nonce looks good
                 //nonce += 1;
                 return true;
@@ -187,6 +211,9 @@ namespace IRTicker2 {
         }
 
         private bool printOB(OrderBook OBobj) {
+
+            if (!IsHandleCreated) return false;
+
             IOrderedEnumerable<KeyValuePair<decimal, ConcurrentDictionary<string, socketOBObjData>>> orderedInput;
 
             if (OBobj.side == "Bid") {
@@ -228,6 +255,7 @@ namespace IRTicker2 {
                         Debug.Print(DateTime.Now + " (Bid) - couldn't add an order from snap shot??");
                     }
                 }
+                printOB(bidOBobj);
             }
             else {
                 Debug.Print(DateTime.Now + " - BIG PRoblems, the snapshot for bids was empty");
@@ -245,6 +273,7 @@ namespace IRTicker2 {
                         Debug.Print(DateTime.Now + " (Offer) - couldn't add an order from snap shot??");
                     }
                 }
+                printOB(offerOBobj);
             }
             else {
                 Debug.Print(DateTime.Now + " - BIG PRoblems, the snapshot for offers was empty");
@@ -257,15 +286,17 @@ namespace IRTicker2 {
 
                 while (orderBuffer.ContainsKey(nonce + 1)) {
                     nonce += 1;
-                    ApplyEventToOB(orderBuffer[nonce], false);
-                    orderBuffer.TryRemove(nonce, out socketOBObj ignore);
+                    
+                    if (orderBuffer.TryRemove(nonce, out socketOBObj currentEvent)) {
+                        ApplyEventToOB(currentEvent, false);
+                    }
+                    else {
+                        resetSocket("OrderBuffer missing an event it should have?  resetting...");
+                    }
                 }
 
                 if (orderBuffer.Count > 0) {  // this means we have out of order nonces in the buffer.  bad news; we can't recover from this.
-                    Debug.Print("Trying to replay initial buffer over the OB and there is missing nonces.  reseting.");
-                    IRWS.Close();
-                    UITimer.CancelAsync();
-                    Connect();
+                    resetSocket("Trying to replay initial buffer over the OB and there is missing nonces.  reseting.");
                     return;
                 }
             }
@@ -305,13 +336,14 @@ namespace IRTicker2 {
         private void UITimer_DoWork(object sender, DoWorkEventArgs e) {
             while (true) {
                 if (UITimer.CancellationPending) break;
-                TryRecoverFromNonce();
-                UITimer.ReportProgress(1);
+                int numOrders = TryRecoverFromNonce();
+                UITimer.ReportProgress(1, numOrders.ToString());
                 Thread.Sleep(sleepFreq);
             }
         }
 
         private void UITimer_ProgressChanged(object sender, ProgressChangedEventArgs e) {
+            if (IsHandleCreated) orders_processed_dyn_label.Invoke((MethodInvoker)(() => orders_processed_dyn_label.Text = (string)e.UserState));
             if (bidOBobj.changed) printOB(bidOBobj);
             if (offerOBobj.changed) printOB(offerOBobj);
         }
@@ -319,17 +351,11 @@ namespace IRTicker2 {
         private void button1_Click(object sender, EventArgs e) {
 
             if (Int32.TryParse(timerSleep.Text, out int sleepFreq1) && sleepFreq1 > 0) {
-                Debug.Print("=========================");
-                Debug.Print("Setting the timer to " + timerSleep.Text + "ms.");
-                Debug.Print("=========================");
-
-                IRWS.Close();
-                UITimer.CancelAsync();
-                sleepFreq = sleepFreq1;
-                Connect();
+                resetSocket("========= Setting the timer to " + timerSleep.Text + "ms. ==============");
             }
-
-
+            else {
+                Debug.Print("timer sleep not a number??");
+            }
         }
     }
 }
