@@ -40,6 +40,7 @@ namespace IRTicker2 {
             bidOBobj = new OrderBook("Bid");
             offerOBobj = new OrderBook("Offer");
             IRWS = new WebSocket("wss://websockets.independentreserve.com");
+            IRWS.SslConfiguration.EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12;
             nonce = -1;
             snapShotLoaded = false;
             badNonceCount = 0;
@@ -184,7 +185,16 @@ namespace IRTicker2 {
             if (OBevent.Data.OrderType == "LimitBid") OBobj = bidOBobj;
             else if (OBevent.Data.OrderType == "LimitOffer") OBobj = offerOBobj;
             else {
-                Debug.Print(DateTime.Now + " - Ordertype not limitbid/offer, it was: " + OBevent.Data.OrderType);
+                Debug.Print(DateTime.Now + " - Ordertype not limitbid/offer, it was: " + OBevent.Data.OrderType + " Event: " + OBevent.Event);
+                if (OBevent.Data.OrderType.EndsWith("Bid")) OBobj = bidOBobj;
+                else if (OBevent.Data.OrderType.EndsWith("Offer")) OBobj = offerOBobj;
+                else {
+                    Debug.Print("what order type is this?? " + OBevent.Data.OrderType);
+                    return;
+                }
+
+                OBobj.findGuid(OBevent.Data.OrderGuid);
+
                 return;
             }
 

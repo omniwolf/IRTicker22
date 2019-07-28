@@ -17,6 +17,38 @@ namespace IRTicker2 {
             side = _side;
         }
 
+        public bool findGuid(string oGuid) {
+            if (guidDict.ContainsKey(oGuid)) {
+                decimal price = guidDict[oGuid];
+                Debug.Print(DateTime.Now + " - order existed at $" + price);
+                if (priceDict.ContainsKey(price)) {
+                    Debug.Print(DateTime.Now + " - this price does exist");
+                    if (price == priceDict.Keys.Max() || price == priceDict.Keys.Min()) {
+                        Debug.Print(DateTime.Now + " - the price is at the top of the order book (either min or max");
+                    }
+                    else {
+                        Debug.Print("it appears the price isn't at the top of the orderbook.  min: " + priceDict.Keys.Min() + " and max: " + priceDict.Keys.Max());
+                    }
+                    if (priceDict[price].ContainsKey(oGuid)) {
+                        Debug.Print("The pricedict at this price also contains this GUID.");
+                        return true;
+                    }
+                    else {
+                        Debug.Print("priceDict does not know of this guid at this price");
+                        return false;
+                    }
+                }
+                else {
+                    Debug.Print("priceDict doesn't have this price at all...");
+                    return false;
+                }
+            }
+            else {
+                Debug.Print("guidDict doesn't know of this guid");
+                return false;
+            }
+        }
+
         public bool addEvent(Form1.socketOBObjData eventObj) {
 
             ///////////////////
@@ -145,24 +177,29 @@ namespace IRTicker2 {
         public bool removeEvent(Form1.socketOBObjData eventObj) {
 
             if (guidDict.ContainsKey(eventObj.OrderGuid)) {
-                decimal price = guidDict[eventObj.OrderGuid];
-                if (priceDict[price].ContainsKey(eventObj.OrderGuid)) {  // good, delete it
-                    if (priceDict[price].Count == 1) {  // remove the whole price from the priceDict
-                        priceDict.TryRemove(price, out ConcurrentDictionary<string, Form1.socketOBObjData> ignore);
-                        return true;
+                //decimal price = guidDict[eventObj.OrderGuid];
+                if (guidDict.TryRemove(eventObj.OrderGuid, out decimal price)) {
+                    if (priceDict[price].ContainsKey(eventObj.OrderGuid)) {  // good, delete it
+                        if (priceDict[price].Count == 1) {  // remove the whole price from the priceDict
+                            priceDict.TryRemove(price, out ConcurrentDictionary<string, Form1.socketOBObjData> ignore);
+                            return true;
+                        }
+                        else if (priceDict[price].Count > 1) {  // just remove the order at this price
+                            priceDict[price].TryRemove(eventObj.OrderGuid, out Form1.socketOBObjData ignore);
+                            return true;
+                        }
+                        else {
+                            Debug.Print(DateTime.Now + " (" + side + ")  - removeEvent: I guess the number of orders at this price level is 0 ?? how:  " + price);
+                            return false;
+                        }
                     }
-                    else if (priceDict[price].Count > 1) {  // just remove the order at this price
-                        priceDict[price].TryRemove(eventObj.OrderGuid, out Form1.socketOBObjData ignore);
-                        return true;
-                    }
-                    else {
-                        Debug.Print(DateTime.Now + " (" + side + ")  - removeEvent: I guess the number of orders at this price level is 0 ?? how:  " + price);
+                    else {  // we have the price, but the order doesn't appear to exist at this price :/
+                        Debug.Print(DateTime.Now + " (" + side + ")  - trying to delete order, but no matching order at this price.. " + price);
                         return false;
                     }
                 }
-                else {  // we have the price, but the order doesn't appear to exist at this price :/
-                    Debug.Print(DateTime.Now + " (" + side + ")  - trying to delete order, but no matching order at this price.. " + price);
-                    return false;
+                else {
+                    Debug.Print(DateTime.Now + " - couldn't remove entry from guidDict: " + price);
                 }
             }
             else {  // the guidDict does not have this orderGuid
