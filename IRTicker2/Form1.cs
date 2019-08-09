@@ -26,10 +26,11 @@ namespace IRTicker2 {
         private decimal bestBid = 0;
         private decimal bestOffer = 0;
         private int badNonceCount = 0;
-        private int sleepFreq = 100;
+        private int sleepFreq = 400;
 
         public Form1() {
             InitializeComponent();
+            timerSleep.Text = sleepFreq.ToString();
             Connect();
         }
 
@@ -361,6 +362,7 @@ namespace IRTicker2 {
         private void button1_Click(object sender, EventArgs e) {
 
             if (Int32.TryParse(timerSleep.Text, out int sleepFreq1) && sleepFreq1 > 0) {
+                sleepFreq = sleepFreq1;
                 resetSocket("========= Setting the timer to " + timerSleep.Text + "ms. ==============");
             }
             else {
