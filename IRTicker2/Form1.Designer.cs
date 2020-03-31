@@ -34,6 +34,7 @@
             this.timerSleep = new System.Windows.Forms.MaskedTextBox();
             this.orders_processed_stat_label = new System.Windows.Forms.Label();
             this.orders_processed_dyn_label = new System.Windows.Forms.Label();
+            this.WSClient_thread = new System.ComponentModel.BackgroundWorker();
             this.SuspendLayout();
             // 
             // spread_dyn_label
@@ -137,6 +138,11 @@
             this.orders_processed_dyn_label.TabIndex = 10;
             this.orders_processed_dyn_label.Text = "0";
             // 
+            // WSClient_thread
+            // 
+            this.WSClient_thread.WorkerReportsProgress = true;
+            this.WSClient_thread.DoWork += new System.ComponentModel.DoWorkEventHandler(this.WSClient_thread_DoWork);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -174,6 +180,7 @@
         private System.Windows.Forms.MaskedTextBox timerSleep;
         private System.Windows.Forms.Label orders_processed_stat_label;
         private System.Windows.Forms.Label orders_processed_dyn_label;
+        private System.ComponentModel.BackgroundWorker WSClient_thread;
     }
 }
 

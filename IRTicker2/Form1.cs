@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using System.Net;
 using System.Collections.Concurrent;
 using System.Threading;
+using Websocket.Client;
 
 namespace IRTicker2 {
     public partial class Form1 : Form {
@@ -22,7 +23,8 @@ namespace IRTicker2 {
         private bool snapShotLoaded = false;
         ConcurrentDictionary<int, socketOBObj> orderBuffer;
         int nonce;
-        WebSocket IRWS;
+        //WebSocket IRWS;
+        WebsocketClient client;
         private decimal bestBid = 0;
         private decimal bestOffer = 0;
         private int badNonceCount = 0;
@@ -40,13 +42,26 @@ namespace IRTicker2 {
             orderBuffer = new ConcurrentDictionary<int, socketOBObj>();
             bidOBobj = new OrderBook("Bid");
             offerOBobj = new OrderBook("Offer");
-            IRWS = new WebSocket("wss://websockets.independentreserve.com");
-            IRWS.SslConfiguration.EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12;
+            //IRWS = new WebSocket("wss://websockets.independentreserve.com");
+            //IRWS.SslConfiguration.EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12;
             nonce = -1;
             snapShotLoaded = false;
             badNonceCount = 0;
             if (!UITimer.IsBusy) UITimer.RunWorkerAsync();
 
+            
+
+            if (!WSClient_thread.IsBusy) WSClient_thread.RunWorkerAsync();
+
+            string OBsnapshot = "";
+            using (WebClient wc = new WebClient()) {
+                OBsnapshot = wc.DownloadString("https://api.independentreserve.com/Public/GetAllOrders?primaryCurrencyCode=xbt&secondaryCurrencyCode=aud");
+            }
+            parseOBsnapshot(OBsnapshot);
+
+
+
+            /*
             IRWS.OnMessage += (sender, e) => {
                 //Debug.Print("got a message: " + e.Data.ToString());
                 ReadMessage(e.Data);
@@ -72,6 +87,7 @@ namespace IRTicker2 {
             IRWS.Connect();
             string subscribeSTR = "{\"Event\":\"Subscribe\",\"Data\":[\"orderbook-xbt-aud\"]}";
             IRWS.Send(subscribeSTR);
+            */
         }
 
         private void ReadMessage(string msg) {
@@ -143,7 +159,9 @@ namespace IRTicker2 {
 
         private void resetSocket(string debugMsg) {
             Debug.Print(DateTime.Now + " - " + debugMsg);
-            IRWS.Close();
+            //IRWS.Close();
+            //client.Stop(System.Net.WebSockets.WebSocketCloseStatus.NormalClosure, "resetting");
+            
             if (UITimer.IsBusy) UITimer.CancelAsync();
             Connect();
         }
@@ -174,7 +192,9 @@ namespace IRTicker2 {
             }
             else {
                 Debug.Print("Too many out of order Nonces, let's reset");
-                IRWS.Close();
+                //IRWS.Close();
+                client.Stop(System.Net.WebSockets.WebSocketCloseStatus.ProtocolError, "bad nonces");
+
                 UITimer.CancelAsync();
                 Connect();
             }
@@ -368,6 +388,25 @@ namespace IRTicker2 {
             else {
                 Debug.Print("timer sleep not a number??");
             }
+        }
+
+        private void WSClient_thread_DoWork(object sender, DoWorkEventArgs e) {
+            var exitEvent = new ManualResetEvent(false);
+            var url = new Uri("wss://websockets.independentreserve.com");
+
+            using (client = new WebsocketClient(url)) {
+                client.ReconnectTimeout = TimeSpan.FromSeconds(30);
+                client.ReconnectionHappened.Subscribe(info =>
+                    Debug.Print($"Reconnection happened, type: {info.Type}"));
+
+                client.MessageReceived.Subscribe(msg => ReadMessage(msg.Text));
+                client.Start().Wait();
+
+                Task.Run(() => client.Send("{\"Event\":\"Subscribe\",\"Data\":[\"orderbook-xbt-aud\"]}"));
+
+                exitEvent.WaitOne();
+            }
+
         }
     }
 }
