@@ -396,8 +396,10 @@ namespace IRTicker2 {
 
             using (client = new WebsocketClient(url)) {
                 client.ReconnectTimeout = TimeSpan.FromSeconds(30);
-                client.ReconnectionHappened.Subscribe(info =>
-                    Debug.Print($"Reconnection happened, type: {info.Type}"));
+                client.ReconnectionHappened.Subscribe(info => {
+                    Debug.Print($"Reconnection happened, type: {info.Type}");
+                    Task.Run(() => client.Send("{\"Event\":\"Subscribe\",\"Data\":[\"orderbook-xbt-aud\"]}"));
+                });
 
                 client.MessageReceived.Subscribe(msg => ReadMessage(msg.Text));
                 client.Start().Wait();
