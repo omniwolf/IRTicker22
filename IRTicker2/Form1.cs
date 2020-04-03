@@ -99,15 +99,14 @@ namespace IRTicker2 {
                 socketOBObj OBevent = JsonConvert.DeserializeObject<socketOBObj>(msg);
                 //Debug.Print("Event: " + OBevent.Event);
 
-                if (!validateNonce(OBevent)) {
-                    resetSocket("Couldn't add order to buffer?  Nonce: " + nonce + " and order nonce: " + OBevent.Nonce);
-                }
-
                 // so if we haven't grabbed the snapshot yet, we just build a buffer to replay over it once we have
                 if (!snapShotLoaded) {
                     orderBuffer[OBevent.Nonce] =  OBevent;
                     Debug.Print("Buffering a " + OBevent.Event + " event, total: " + orderBuffer.Count);
                     return;
+                }
+                else if (!validateNonce(OBevent)) {
+                    resetSocket("Couldn't add order to buffer?  Nonce: " + nonce + " and order nonce: " + OBevent.Nonce);
                 }
 
                 if (!UITimer.IsBusy) UITimer.RunWorkerAsync();
@@ -214,9 +213,60 @@ namespace IRTicker2 {
                     return;
                 }
 
+                if (OBevent.Event == "OrderChanged") {
+                    //IOrderedEnumerable<KeyValuePair<decimal, ConcurrentDictionary<string, socketOBObjData>>> orderedInput;
+                    decimal totalVol = 0;
+                    ConcurrentDictionary<string, socketOBObjData> bb;
+
+                    Debug.Print("we have a " + OBevent.Event + " " + OBevent.Data.OrderType + " with vol " + OBevent.Data.Volume + ". This should be equal or less than the spread vol?");
+                    if (OBobj.side == "Bid") {
+                        decimal maxPrice = OBobj.priceDict.Keys.Max();
+                        //orderedInput = OBobj.priceDict.OrderByDescending(key => key.Key);
+                        bb = OBobj.priceDict[maxPrice];
+                        foreach (var bbIT in bb) {
+                            totalVol += bbIT.Value.Volume;
+                        }                        
+                    }
+                    else {
+                        //orderedInput = OBobj.priceDict.OrderBy(key => key.Key);
+                        decimal minPrice = OBobj.priceDict.Keys.Min();
+                        bb = OBobj.priceDict[minPrice];
+                        foreach (var bbIT in bb) {
+                            totalVol += bbIT.Value.Volume;
+                        }
+                    }
+                    Debug.Print("total vol at the spread: " + totalVol + " made up of " + bb.Count + " order(s)");
+
+                }
+
                 OBobj.findGuid(OBevent.Data.OrderGuid);
 
                 return;
+            }
+
+            if (OBevent.Event == "OrderChanged") {
+
+                decimal totalVol1 = 0;
+                ConcurrentDictionary<string, socketOBObjData> bb1;
+
+                Debug.Print("TESTING we have a " + OBevent.Event + " " + OBevent.Data.OrderType + " with vol " + OBevent.Data.Volume + ". This should be equal or less than the spread vol?");
+                if (OBobj.side == "Bid") {
+                    decimal maxPrice = OBobj.priceDict.Keys.Max();
+                    //orderedInput = OBobj.priceDict.OrderByDescending(key => key.Key);
+                    bb1 = OBobj.priceDict[maxPrice];
+                    foreach (var bbIT in bb1) {
+                        totalVol1 += bbIT.Value.Volume;
+                    }
+                }
+                else {
+                    //orderedInput = OBobj.priceDict.OrderBy(key => key.Key);
+                    decimal minPrice = OBobj.priceDict.Keys.Min();
+                    bb1 = OBobj.priceDict[minPrice];
+                    foreach (var bbIT in bb1) {
+                        totalVol1 += bbIT.Value.Volume;
+                    }
+                }
+                Debug.Print("TESTINGtotal vol at the spread: " + totalVol1 + " made up of " + bb1.Count + " order(s)");
             }
 
             OBobj.changed = true;
