@@ -248,7 +248,8 @@ namespace IRTicker2 {
                 return;
             }
 
-            if (OBevent.Event == "OrderChanged") {
+            // this was just for debugging the order changed events.  not really needed now.
+            /*if (OBevent.Event == "OrderChanged") {
 
                 decimal totalVol1 = 0;
                 ConcurrentDictionary<string, socketOBObjData> bb1;
@@ -271,7 +272,7 @@ namespace IRTicker2 {
                     }
                 }
                 Debug.Print("TESTINGtotal vol at the spread: " + totalVol1 + " made up of " + bb1.Count + " order(s)");
-            }
+            }*/
 
             OBobj.changed = true;
 
