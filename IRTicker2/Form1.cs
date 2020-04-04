@@ -202,18 +202,14 @@ namespace IRTicker2 {
 
         private void ApplyEventToOB(socketOBObj OBevent, bool draw) {
             OrderBook OBobj;
-            if (OBevent.Data.OrderType == "LimitBid") OBobj = bidOBobj;
-            else if (OBevent.Data.OrderType == "LimitOffer") OBobj = offerOBobj;
+            //if (OBevent.Data.OrderType == "LimitBid") OBobj = bidOBobj;
+            //else if (OBevent.Data.OrderType == "LimitOffer") OBobj = offerOBobj;
+            if (OBevent.Data.OrderType.EndsWith("LimitBid")) OBobj = bidOBobj;
+            else if (OBevent.Data.OrderType.EndsWith("LimitOffer")) OBobj = offerOBobj;
             else {
-                Debug.Print(DateTime.Now + " - Ordertype not limitbid/offer, it was: " + OBevent.Data.OrderType + " Event: " + OBevent.Event);
-                if (OBevent.Data.OrderType.EndsWith("Bid")) OBobj = bidOBobj;
-                else if (OBevent.Data.OrderType.EndsWith("Offer")) OBobj = offerOBobj;
-                else {
-                    Debug.Print("what order type is this?? " + OBevent.Data.OrderType);
-                    return;
-                }
 
                 if (OBevent.Event == "OrderChanged") {
+                    return; // any market orders with order changed is OK i think, just ignore.
                     //IOrderedEnumerable<KeyValuePair<decimal, ConcurrentDictionary<string, socketOBObjData>>> orderedInput;
                     decimal totalVol = 0;
                     ConcurrentDictionary<string, socketOBObjData> bb;
@@ -237,6 +233,14 @@ namespace IRTicker2 {
                     }
                     Debug.Print("total vol at the spread: " + totalVol + " made up of " + bb.Count + " order(s)");
 
+                }
+
+                Debug.Print(DateTime.Now + " - !!!!!!  Ordertype not limitbid/offer, it was: " + OBevent.Data.OrderType + " Event: " + OBevent.Event);
+                if (OBevent.Data.OrderType.EndsWith("Bid")) OBobj = bidOBobj;
+                else if (OBevent.Data.OrderType.EndsWith("Offer")) OBobj = offerOBobj;
+                else {
+                    Debug.Print("what order type is this?? " + OBevent.Data.OrderType);
+                    return;
                 }
 
                 OBobj.findGuid(OBevent.Data.OrderGuid);

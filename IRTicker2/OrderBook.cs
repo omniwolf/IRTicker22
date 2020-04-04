@@ -64,7 +64,7 @@ namespace IRTicker2 {
                 if (priceDict.ContainsKey(price)) {  // priceDict has this price though
                     Debug.Print(DateTime.Now + " (" + side + ")  - price dict has the price (not totally surprising as it could be a different order(s)...)");
                     if (priceDict[price].ContainsKey(eventObj.OrderGuid)) {
-                        Debug.Print(DateTime.Now + " (" + side + ")  - priceDict also has this guid.  this is more surprising.  Will overwrite it.");
+                        Debug.Print(DateTime.Now + " (" + side + ")  - priceDict also has this guid.  this is more surprising.  Will overwrite it.  Old volume: " + priceDict[price][eventObj.OrderGuid].Volume + ", new volume: " + eventObj.Volume);
                         priceDict[price][eventObj.OrderGuid] = eventObj;
                         return true;
                     }
@@ -168,7 +168,7 @@ namespace IRTicker2 {
                 }
             }
             else {  // the guidDict has no orderGuid ??
-                Debug.Print(DateTime.Now + " (" + side + ")  - changeEvent: orderGuid dictionary has no order at this guid");
+                Debug.Print(DateTime.Now + " (" + side + ")  - changeEvent: orderGuid dictionary has no order at this guid, type: " + eventObj.OrderType + " guid: " + eventObj.OrderGuid);
                 return false;
             }
             return false;
