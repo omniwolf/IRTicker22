@@ -41,7 +41,7 @@
             // 
             this.spread_dyn_label.AutoSize = true;
             this.spread_dyn_label.Font = new System.Drawing.Font("Microsoft Sans Serif", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.spread_dyn_label.Location = new System.Drawing.Point(270, 48);
+            this.spread_dyn_label.Location = new System.Drawing.Point(112, 12);
             this.spread_dyn_label.Name = "spread_dyn_label";
             this.spread_dyn_label.Size = new System.Drawing.Size(0, 25);
             this.spread_dyn_label.TabIndex = 0;
@@ -49,7 +49,7 @@
             // spread_stat_label
             // 
             this.spread_stat_label.AutoSize = true;
-            this.spread_stat_label.Location = new System.Drawing.Point(166, 48);
+            this.spread_stat_label.Location = new System.Drawing.Point(40, 18);
             this.spread_stat_label.Name = "spread_stat_label";
             this.spread_stat_label.Size = new System.Drawing.Size(44, 13);
             this.spread_stat_label.TabIndex = 1;
@@ -58,7 +58,7 @@
             // best_offer_stat_label
             // 
             this.best_offer_stat_label.AutoSize = true;
-            this.best_offer_stat_label.Location = new System.Drawing.Point(230, 87);
+            this.best_offer_stat_label.Location = new System.Drawing.Point(144, 50);
             this.best_offer_stat_label.Name = "best_offer_stat_label";
             this.best_offer_stat_label.Size = new System.Drawing.Size(55, 13);
             this.best_offer_stat_label.TabIndex = 2;
@@ -67,7 +67,7 @@
             // best_bid_stat_label
             // 
             this.best_bid_stat_label.AutoSize = true;
-            this.best_bid_stat_label.Location = new System.Drawing.Point(97, 87);
+            this.best_bid_stat_label.Location = new System.Drawing.Point(11, 50);
             this.best_bid_stat_label.Name = "best_bid_stat_label";
             this.best_bid_stat_label.Size = new System.Drawing.Size(48, 13);
             this.best_bid_stat_label.TabIndex = 3;
@@ -77,7 +77,7 @@
             // 
             this.best_bid_dyn_label.AutoSize = true;
             this.best_bid_dyn_label.Font = new System.Drawing.Font("Microsoft Sans Serif", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.best_bid_dyn_label.Location = new System.Drawing.Point(92, 119);
+            this.best_bid_dyn_label.Location = new System.Drawing.Point(6, 82);
             this.best_bid_dyn_label.Name = "best_bid_dyn_label";
             this.best_bid_dyn_label.Size = new System.Drawing.Size(24, 25);
             this.best_bid_dyn_label.TabIndex = 4;
@@ -87,7 +87,7 @@
             // 
             this.best_offer_dyn_label.AutoSize = true;
             this.best_offer_dyn_label.Font = new System.Drawing.Font("Microsoft Sans Serif", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.best_offer_dyn_label.Location = new System.Drawing.Point(222, 119);
+            this.best_offer_dyn_label.Location = new System.Drawing.Point(136, 82);
             this.best_offer_dyn_label.Name = "best_offer_dyn_label";
             this.best_offer_dyn_label.Size = new System.Drawing.Size(24, 25);
             this.best_offer_dyn_label.TabIndex = 5;
@@ -102,7 +102,7 @@
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(53, 245);
+            this.button1.Location = new System.Drawing.Point(8, 165);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(104, 23);
             this.button1.TabIndex = 7;
@@ -112,7 +112,7 @@
             // 
             // timerSleep
             // 
-            this.timerSleep.Location = new System.Drawing.Point(57, 200);
+            this.timerSleep.Location = new System.Drawing.Point(12, 120);
             this.timerSleep.Mask = "0000000000";
             this.timerSleep.Name = "timerSleep";
             this.timerSleep.Size = new System.Drawing.Size(100, 20);
@@ -123,7 +123,7 @@
             // orders_processed_stat_label
             // 
             this.orders_processed_stat_label.AutoSize = true;
-            this.orders_processed_stat_label.Location = new System.Drawing.Point(197, 203);
+            this.orders_processed_stat_label.Location = new System.Drawing.Point(121, 123);
             this.orders_processed_stat_label.Name = "orders_processed_stat_label";
             this.orders_processed_stat_label.Size = new System.Drawing.Size(140, 13);
             this.orders_processed_stat_label.TabIndex = 9;
@@ -132,7 +132,7 @@
             // orders_processed_dyn_label
             // 
             this.orders_processed_dyn_label.AutoSize = true;
-            this.orders_processed_dyn_label.Location = new System.Drawing.Point(213, 254);
+            this.orders_processed_dyn_label.Location = new System.Drawing.Point(179, 154);
             this.orders_processed_dyn_label.Name = "orders_processed_dyn_label";
             this.orders_processed_dyn_label.Size = new System.Drawing.Size(13, 13);
             this.orders_processed_dyn_label.TabIndex = 10;
@@ -147,7 +147,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(384, 361);
+            this.ClientSize = new System.Drawing.Size(284, 201);
             this.Controls.Add(this.orders_processed_dyn_label);
             this.Controls.Add(this.orders_processed_stat_label);
             this.Controls.Add(this.timerSleep);
@@ -158,8 +158,8 @@
             this.Controls.Add(this.best_offer_stat_label);
             this.Controls.Add(this.spread_stat_label);
             this.Controls.Add(this.spread_dyn_label);
-            this.MaximumSize = new System.Drawing.Size(400, 400);
-            this.MinimumSize = new System.Drawing.Size(400, 400);
+            this.MaximumSize = new System.Drawing.Size(300, 240);
+            this.MinimumSize = new System.Drawing.Size(300, 240);
             this.Name = "Form1";
             this.Text = "Form1";
             this.ResumeLayout(false);
